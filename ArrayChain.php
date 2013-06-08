@@ -4,6 +4,10 @@
  * @class ArrayChain
  *
  * ArrayChain provides several helper methods and some 'syntax sugar' to simplify complex array processing.
+ * 
+ * @author Jeron Diovis <void.jeron.diovis@gmail.com>
+ * @version 1.0
+ * @license MIT license
  */
 class ArrayChain {
 

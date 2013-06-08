@@ -1,4 +1,9 @@
 <?php
+/**
+ * @author Jeron Diovis <void.jeron.diovis@gmail.com>
+ * @version 1.0
+ * @license MIT license
+ */
 
 /**
  * Class ArrayHelper

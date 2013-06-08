@@ -10,6 +10,8 @@
  * It allows to perform processing without creation an instance of ArrayChain an calling 'toArray' manually.
  * Useful, if you need to perform just one processing, without chaining.
  *
+ * Also, you can create a full-functional chain instance through this helper, using {@link chain} method
+ *
  * @method array map(array $data, mixed $valueField, mixed $keyField = null, $preserveKeys = false)
  * @method array join(array $leftArray, array $rightArray, array $joinKeys, array $options  = array())
  * @method array group(array $data, mixed $groupFields, $byValues = true, $skipNull = true)
@@ -42,6 +44,7 @@ class ArrayHelper extends CApplicationComponent {
 	}
 
 	/**
+	 * Creates an ArrayChain instance with given data
 	 * @param array $data
 	 * @return ArrayChain
 	 */
@@ -205,6 +208,31 @@ class ArrayChain extends CMap {
 		}
 
 		$this->save($map);
+		return $this;
+	}
+
+
+	/**
+	 * Invokes specified method of each array element.
+	 *
+	 * @param string $methodName Path to method which must be called
+	 * @param null|callable $dataSource
+	 *        If set, this function will be called for each array element (passing this element as argument), and returned values will be passed to invoked method.
+	 *        Returned value always must be an array.
+	 * @return ArrayChain
+	 */
+	public function invoke($methodName, $dataSource = null) {
+		$data = $this->toArray();
+		foreach ($data as $element) {
+			list($caller, $callee) = $this->parsePathPartial($element, $methodName, -1);
+			$callback = array($caller, array_pop($callee));
+			if (is_null($dataSource)) {
+				call_user_func($callback);
+			} else {
+				call_user_func_array($callback, call_user_func($dataSource, $element));
+			}
+		}
+		$this->save($data); // called methods can change data state
 		return $this;
 	}
 
@@ -612,30 +640,6 @@ class ArrayChain extends CMap {
 		}
 
 		$this->save($result);
-		return $this;
-	}
-
-	/**
-	 * Invokes specified method of each array element.
-	 *
-	 * @param string $methodName Path to method which must be called
-	 * @param null|callable $dataSource
-	 *        If set, this function will be called for each array element (passing this element as argument), and returned values will be passed to invoked method.
-	 *        Returned value always must be an array.
-	 * @return ArrayChain
-	 */
-	public function invoke($methodName, $dataSource = null) {
-		$data = $this->toArray();
-		foreach ($data as $element) {
-			list($caller, $callee) = $this->parsePathPartial($element, $methodName, -1);
-			$callback = array($caller, array_pop($callee));
-			if (is_null($dataSource)) {
-				call_user_func($callback);
-			} else {
-				call_user_func_array($callback, call_user_func($dataSource, $element));
-			}
-		}
-		$this->save($data); // called methods can change data state
 		return $this;
 	}
 

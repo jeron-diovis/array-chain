@@ -129,6 +129,30 @@ class ArrayChain {
 	}
 
 	/**
+	 * Invokes specified method of each array element.
+	 *
+	 * @param string $methodName Path to method which must be called
+	 * @param null|callable $dataSource
+	 *        If set, this function will be called for each array element (passing this element as argument), and returned values will be passed to invoked method.
+	 *        Returned value always must be an array.
+	 * @return ArrayChain
+	 */
+	public function invoke($methodName, $dataSource = null) {
+		$data = $this->toArray();
+		foreach ($data as $element) {
+			list($caller, $callee) = $this->parsePathPartial($element, $methodName, -1);
+			$callback = array($caller, array_pop($callee));
+			if (is_null($dataSource)) {
+				call_user_func($callback);
+			} else {
+				call_user_func_array($callback, call_user_func($dataSource, $element));
+			}
+		}
+		$this->save($data); // called methods can change data state
+		return $this;
+	}
+
+	/**
 	 * Groups elements which has same keys or values, depending on set options.
 	 *
 	 * <br> Examples: <br>
@@ -535,30 +559,6 @@ class ArrayChain {
 		return $this;
 	}
 
-	/**
-	 * Invokes specified method of each array element.
-	 *
-	 * @param string $methodName Path to method which must be called
-	 * @param null|callable $dataSource
-	 *        If set, this function will be called for each array element (passing this element as argument), and returned values will be passed to invoked method.
-	 *        Returned value always must be an array.
-	 * @return ArrayChain
-	 */
-	public function invoke($methodName, $dataSource = null) {
-		$data = $this->toArray();
-		foreach ($data as $element) {
-			list($caller, $callee) = $this->parsePathPartial($element, $methodName, -1);
-			$callback = array($caller, array_pop($callee));
-			if (is_null($dataSource)) {
-				call_user_func($callback);
-			} else {
-				call_user_func_array($callback, call_user_func($dataSource, $element));
-			}
-		}
-		$this->save($data); // called methods can change data state
-		return $this;
-	}
-
 	// implement some standard array functions to support chaining for convenience:
 
 	/**
@@ -641,8 +641,8 @@ class ArrayChain {
 	}
 
 	/**
-	 * @overridden to allow to export array data to given variable, without breaking chain
-	 * @param &$buffer
+	 * Returns current chain data.
+	 * @param mixed &$buffer If specified, data will be written to this variable, and chain instance will be returned
 	 * @return array|ArrayChain
 	 */
 	public function toArray(&$buffer = null) {
@@ -655,11 +655,9 @@ class ArrayChain {
 	}
 
 	/**
-	 * @overridden to allow to use path aliases instead of just keys to extract data.
-	 * Also writing value to given buffer is allowed, to support chaining
-	 *
+	 * Returns item under specified path
 	 * @param string $key
-	 * @param &$buffer
+	 * @param mixed &$buffer If specified, data will be written to this variable, and chain instance will be returned
 	 * @return mixed
 	 */
 	public function itemAt($key, &$buffer = null) {

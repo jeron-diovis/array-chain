@@ -136,23 +136,24 @@ class ArrayChain {
 	 * Invokes specified method of each array element.
 	 *
 	 * @param string $methodName Path to method which must be called
-	 * @param null|callable $dataSource
-	 *        If set, this function will be called for each array element (passing this element as argument), and returned values will be passed to invoked method.
-	 *        Returned value always must be an array.
+	 * All extra arguments will be passed to called method.
 	 * @return ArrayChain
 	 */
-	public function invoke($methodName, $dataSource = null) {
-		$data = $this->toArray();
-		foreach ($data as $element) {
+	public function invoke($methodName) {
+		$elements = $this->toArray();
+		$result = array();
+		$args = func_get_args();
+		$methodName = array_shift($args);
+		foreach ($elements as $element) {
 			list($caller, $callee) = $this->parsePathPartial($element, $methodName, -1);
 			$callback = array($caller, array_pop($callee));
-			if (is_null($dataSource)) {
-				call_user_func($callback);
+			if ($args === array()) {
+				$result[] = call_user_func($callback);
 			} else {
-				call_user_func_array($callback, call_user_func($dataSource, $element));
+				$result[] = call_user_func_array($callback, $args);
 			}
 		}
-		$this->save($data); // called methods can change data state
+		$this->save($result); // called methods can change data state
 		return $this;
 	}
 

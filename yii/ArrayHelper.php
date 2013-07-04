@@ -67,6 +67,85 @@ class ArrayHelper extends CApplicationComponent {
 			return parent::__call($method, $arguments);
 		}
 	}
+
+	//
+
+	/**
+	 * Creates an array with a structure, specified by keys of {@link $map} array, and values, specified by corresponding values.
+	 *
+	 * Usage:
+	 * <code>
+	 * $source = array('external' => array('internal' => 42));
+	 * $map = array('some.nested.field' => 'external.internal');
+	 * $result = Yii::app()->arrayHelper->mapAttributes($map, $source);
+	 *
+	 * // Result:
+	 * array(
+	 *      'some' => array(
+	 *          'nested' => array(
+	 *              'field' => 42
+	 *          )
+	 *      )
+	 * )
+	 * </code>
+	 *
+	 * @param array $map
+	 * @param object|array $dataSource
+	 * @return array
+	 *
+	 * @see createArrayPath
+	 * @see parsePathAlias
+	 */
+	public function mapAttributes(array $map, $dataSource) {
+		$result = array();
+		foreach ($map as $resultAttributePath => $sourceAttributePath) {
+			// TODO: not optimal, too much merges
+			$this->createArrayPath($result, $resultAttributePath, $this->parsePathAlias($dataSource, $sourceAttributePath));
+		}
+		return $result;
+	}
+
+	/**
+	 * Creates sub-arrays in given array according to given path alias.
+	 * If exact path already exists, value will we overridden.
+	 *
+	 * @param array $array Array to be modified
+	 * @param string $path keys.separated.by.dots
+	 * @param mixed $value this value will be assigned to last path element
+	 * @return array
+	 *
+	 * @see mapAttributes
+	 */
+	private function createArrayPath(&$array, $path, $value = null) {
+		$pathParts = explode('.', $path);
+		$head = array();
+		$result = &$head;
+		while (count($pathParts)) {
+			$fieldName = array_shift($pathParts);
+			$head[$fieldName] = array();
+			$head = &$head[$fieldName];
+		}
+		$head = $value;
+		$array = CMap::mergeArray($array, $result);
+		return $array;
+	}
+
+	/**
+	 * Extracts from given array or an object value, specified by given path alias.
+	 *
+	 * @param object|array $dataStorage
+	 * @param string $path  keys.separated.by.dots
+	 * @return mixed
+	 */
+	private function parsePathAlias($dataStorage, $path) {
+		$pathParts = explode('.', $path);
+		$result = $dataStorage;
+		while (count($pathParts)) {
+			$fieldName = array_shift($pathParts);
+			$result = is_object($dataStorage) ? $result->$fieldName : $result[$fieldName];
+		}
+		return $result;
+	}
 }
 
 /**
